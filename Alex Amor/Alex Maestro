@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>✨ Carta Sorpresa: Girasol & Spider-Man  | María de los Ángeles</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+            background: radial-gradient(ellipse at bottom, #1a1a2e 0%, #0f0f1a 40%, #03060c 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        body::before {
+            content: "";
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image:
+                radial-gradient(2px 2px at 20px 30px, rgba(255,215,0,0.8), transparent),
+                radial-gradient(2px 2px at 40px 70px, rgba(255,77,77,0.6), transparent);
+            background-size: 200px 200px;
+            animation: twinkle 8s infinite linear;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.6;
+        }
+        @keyframes twinkle { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.9; } }
+
+        #canvas-container {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0; display: none;
+        }
+
+        /* ===== SOBRE CERRADO ===== */
+        .envelope-wrapper {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 20px;
+            cursor: pointer;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            z-index: 20;
+        }
+        .envelope-wrapper.opened { opacity: 0; pointer-events: none; transform: scale(0.8); }
+
+        .envelope {
+            width: 320px; height: 220px;
+            background: linear-gradient(145deg, #8B0000, #cc2222);
+            border-radius: 15px; position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 3px rgba(255,215,0,0.4), 0 0 40px rgba(233,69,96,0.4);
+            animation: envelopeFloat 3s ease-in-out infinite;
+        }
+        @keyframes envelopeFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        .envelope::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; height: 110px;
+            background: linear-gradient(135deg, transparent 49%, rgba(255,215,0,0.3) 50%, transparent 51%);
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            border-radius: 15px 15px 0 0; z-index: 2;
+        }
+
+        .envelope-seal {
+            position: absolute; top: 95px; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 60px;
+            background: linear-gradient(135deg, #ffd700, #ffb347);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; color: #8B0000;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3), 0 0 25px rgba(255,215,0,0.6);
+            z-index: 3; animation: sealPulse 2s infinite; border: 3px solid #fff;
+        }
+        @keyframes sealPulse { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.1); } }
+
+        .envelope-text {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            text-align: center; font-family: 'Playfair Display', cursive;
+            font-size: 1.1rem; color: #ffd700; text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            z-index: 2; width: 90%;
+        }
+        .envelope-text span { display: block; font-size: 0.9rem; color: #ffdfaa; margin-top: 3px; }
+
+        .click-hint {
+            margin-top: 30px; text-align: center; color: #ffdfaa;
+            font-size: 0.95rem; animation: hintBounce 2s infinite;
+            display: flex; align-items: center; gap: 8px;
+        }
+        @keyframes hintBounce { 0%, 100% { opacity: 0.8; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-5px); } }
+
+        /* ===== EFECTO DE APERTURA ===== */
+        .opening-effect {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(255,215,0,0.8) 0%, transparent 70%);
+            border-radius: 50%; transform: scale(0); z-index: 15;
+            pointer-events: none; opacity: 0;
+        }
+        .opening-effect.animate { animation: openBurst 0.8s ease-out forwards; }
+        @keyframes openBurst { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+        .opening-effect.close-anim { animation: closeBurst 0.5s ease-in forwards; }
+        @keyframes closeBurst { 0% { transform: scale(3); opacity: 0.6; } 100% { transform: scale(0); opacity: 0; } }
+
+        /* ===== CONTENIDO CENTRADO ===== */
+        .content {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            pointer-events: none;
+        }
+        .content.revealed {
+            display: flex;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ===== TARJETA ===== */
+        .tarjeta-maestra {
+            max-width: 600px;
+            width: 90%;
+            margin: 0 auto;
+            background: linear-gradient(145deg, rgba(30,25,50,0.85), rgba(20,15,35,0.9));
+            backdrop-filter: blur(20px);
+            border-radius: 50px;
+            padding: 35px 32px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.7), 0 0 0 2px rgba(255,215,0,0.5) inset, 0 0 50px rgba(233,69,96,0.4);
+            border: 2px solid rgba(255,220,120,0.8);
+            animation: floatCard 5s ease-in-out infinite;
+            position: relative;
+            overflow-y: auto;
+            max-height: 90vh;
+            transform: scale(0.95);
+            transition: transform 0.5s ease;
+        }
+        .content.revealed .tarjeta-maestra { transform: scale(1); }
+        @keyframes floatCard { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-12px) scale(1); } }
+
+        /* Scrollbar personalizado */
+        .tarjeta-maestra::-webkit-scrollbar { width: 6px; }
+        .tarjeta-maestra::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .tarjeta-maestra::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.4); border-radius: 10px; }
+        .tarjeta-maestra::-webkit-scrollbar-thumb:hover { background: rgba(255,215,0,0.6); }
+
+        /* ===== BOTÓN CERRAR CENTRADO ARRIBA ===== */
+        .cerrar-btn {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,100,100,0.9);
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            font-size: 1.3rem; font-weight: bold;
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4), 0 0 20px rgba(255,77,77,0.5);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .cerrar-btn:hover {
+            background: #ff4d4d;
+            transform: translateX(-50%) scale(1.15) rotate(90deg);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.5), 0 0 35px rgba(255,77,77,0.8);
+        }
+        .cerrar-btn:active { transform: translateX(-50%) scale(0.95); }
+
+        /* ===== TIPOGRAFÍA Y ELEMENTOS ===== */
+        h1 {
+            font-family: 'Playfair Display', cursive;
+            font-size: 2.4rem;
+            background: linear-gradient(135deg, #FFD966, #FFB347, #FF4D4D, #e94560);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            text-align: center; margin-bottom: 8px;
+        }
+
+        .subtitulo {
+            text-align: center; font-size: 1.05rem; color: #ffdfaa;
+            border-bottom: 2px dashed #ffd700; display: inline-block;
+            margin: 0 auto 18px; padding-bottom: 8px; font-weight: 600;
+        }
+
+        .foto-perfil { text-align: center; margin: 25px 0; }
+        .foto-perfil img {
+            width: 150px; height: 150px; border-radius: 50%;
+            object-fit: cover; border: 5px solid #ffd700;
+            box-shadow: 0 0 0 6px rgba(233,69,96,0.6), 0 20px 40px rgba(0,0,0,0.5);
+            transition: 0.4s;
+        }
+        .foto-perfil img:hover { transform: scale(1.1) rotate(3deg); }
+        .foto-perfil p { margin-top: 12px; font-size: 0.95rem; color: #ffdfaa; }
+
+        .mensaje-principal {
+            background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(30,20,40,0.8));
+            border-radius: 35px; padding: 22px; margin: 22px 0;
+            border: 2px solid rgba(255,215,0,0.4);
+            font-style: italic; text-align: center;
+        }
+        .mensaje-principal p { font-size: 1.05rem; line-height: 1.6; color: #fff; }
+
+        .lsm-corazon {
+            background: linear-gradient(135deg, rgba(42,30,60,0.9), rgba(30,20,45,0.95));
+            border-radius: 35px; padding: 16px; text-align: center;
+            margin: 22px 0; border: 2px solid #ffb347;
+        }
+        .btn-lsm {
+            background: linear-gradient(135deg, #ffb347, #ff9933);
+            border: none; color: #1e1a2f; padding: 8px 18px;
+            border-radius: 40px; cursor: pointer; font-weight: bold;
+            transition: 0.3s; margin-top: 8px;
+        }
+        .btn-lsm:hover { transform: scale(1.05); }
+
+        .universo-text {
+            text-align: center; font-size: 1.3rem; margin-top: 22px; font-weight: bold;
+            background: rgba(0,0,0,0.7);
+            border-radius: 30px; padding: 16px;
+            border: 1px solid rgba(255,215,0,0.4);
+        }
+
+        .firma {
+            font-family: 'Playfair Display', cursive;
+            font-size: 1.8rem; text-align: center;
+            color: #ffd966; margin-top: 25px;
+        }
+        .fecha {
+            text-align: center; font-size: 0.95rem;
+            margin-top: 8px; color: #ffdfaa;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .envelope { width: 280px; height: 190px; }
+            .tarjeta-maestra { padding: 30px 20px; border-radius: 40px; max-height: 85vh; }
+            h1 { font-size: 1.9rem; }
+            .foto-perfil img { width: 130px; height: 130px; }
+            .cerrar-btn { width: 36px; height: 36px; font-size: 1.1rem; top: 10px; }
+            .mensaje-principal p { font-size: 0.95rem; }
+            .firma { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas 3D -->
+    <div id="canvas-container"></div>
+
+    <!-- SOBRE CERRADO -->
+    <div class="envelope-wrapper" id="envelopeWrapper">
+        <div class="envelope">
+            <div class="envelope-seal"><i class="fas fa-spider"></i></div>
+            <div class="envelope-text">
+                Para: María de los Ángeles 🌻
+                <span>✨ Día del Maestro ✨</span>
+            </div>
+        </div>
+        <div class="click-hint">
+            <i class="fas fa-hand-pointer"></i>
+            <span>Toca o haz clic para abrir tu sorpresa 🕷️</span>
+        </div>
+    </div>
+
+    <!-- Efecto de apertura/cierre -->
+    <div class="opening-effect" id="openingEffect"></div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="content" id="mainContent">
+        <div class="tarjeta-maestra">
+            <!-- Botón cerrar centrado arriba -->
+            <div class="cerrar-btn" id="cerrarBtn" title="Cerrar carta">✖</div>
+
+            <h1></h1>
+            <h1>🌻 Día del Maestro 🌻</h1>
+            <div style="text-align:center;">
+                <span class="subtitulo">✨ Para: María de los Ángeles ✨</span>
+            </div>
+
+            <div class="foto-perfil">
+                <img src="Amiga_Maria_Angel.jpeg"
+                     alt="Foto de María de los Ángeles"
+                     onerror="this.src='https://via.placeholder.com/150/ffd700/1a1a2e?text=MARIA'">
+                <p><i class="fas fa-heart" style="color:#ff4d6d;"></i> Tu amistad florece como girasol 🌻<br>Tu valentía inspira como Spider-Man ️</p>
+            </div>
+
+            <div class="mensaje-principal">
+                <p>🌸 <strong>Querida María de los Ángeles</strong>, en este <strong>Día del Maestro</strong> celebro tu luz infinita. Eres ese girasol que siempre busca el sol para otros, y como Spider-Man: <strong>"con gran poder viene gran responsabilidad"</strong>... y tú transformas vidas con amor, paciencia y corazón. 🌻✨🕷️</p>
+            </div>
+
+            <div class="lsm-corazon" id="lsmBlock">
+                <i class="fas fa-sign-language"></i> <strong> Lengua de Señas Mexicana </strong><br>
+                <span id="lsmText">🤟 "Gracias, maestra" en LSM: Mano en pecho + movimiento circular del corazón</span><br>
+                <button class="btn-lsm" id="btnLsm">
+                    <i class="fas fa-hand-peace"></i> Mostrar seña especial para María
+                </button>
+            </div>
+
+            <div class="universo-text">
+                🌌 <strong>Te quiero en todos los universos</strong> 🌌<br>
+                <span style="font-size: 0.95rem;">En cada dimensión de telaraña y cada campo de girasoles dorados, eres mi amiga y maestra increíble 💖✨</span>
+            </div>
+
+            <div class="firma">Con admiración infinita, tu amigo <i class="fas fa-feather-alt"></i></div>
+            <div class="fecha">️ 15 de Mayo - Día del Maestro 🕷️</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let scene, camera, renderer, controls, colorLight;
+        let sunflowers = [], spiderGroup, webGroup, particlesMesh, starsMesh;
+        let isSceneInitialized = false;
+        let isCardOpen = false;
+
+        const envelopeWrapper = document.getElementById('envelopeWrapper');
+        const mainContent = document.getElementById('mainContent');
+        const canvasContainer = document.getElementById('canvas-container');
+        const openingEffect = document.getElementById('openingEffect');
+        const cerrarBtn = document.getElementById('cerrarBtn');
+
+        function openCard() {
+            if (isCardOpen) return;
+            envelopeWrapper.classList.add('opened');
+            openingEffect.classList.remove('close-anim');
+            openingEffect.classList.add('animate');
+
+            setTimeout(() => {
+                canvasContainer.style.display = 'block';
+                mainContent.classList.add('revealed');
+                if (!isSceneInitialized) { initThreeJS(); isSceneInitialized = true; }
+                isCardOpen = true;
+            }, 400);
+        }
+
+        function closeCard() {
+            if (!isCardOpen) return;
+            mainContent.classList.remove('revealed');
+            openingEffect.classList.remove('animate');
+            openingEffect.classList.add('close-anim');
+
+            setTimeout(() => {
+                canvasContainer.style.display = 'none';
+                envelopeWrapper.classList.remove('opened');
+                openingEffect.classList.remove('close-anim');
+                openingEffect.style.animation = '';
+                isCardOpen = false;
+            }, 500);
+        }
+
+        envelopeWrapper.addEventListener('click', openCard);
+        envelopeWrapper.addEventListener('touchstart', (e) => { e.preventDefault(); openCard(); }, { passive: false });
+        cerrarBtn?.addEventListener('click', (e) => { e.stopPropagation(); closeCard(); });
+        cerrarBtn?.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); closeCard(); }, { passive: false });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isCardOpen) closeCard(); });
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x03060c);
+            scene.fog = new THREE.FogExp2(0x03060c, 0.008);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2, 10);
+            camera.lookAt(0, 1, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            canvasContainer.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+            controls.enableZoom = false;
+            controls.enablePan = false;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
+            dirLight.position.set(5, 8, 5); scene.add(dirLight);
+            scene.add(new THREE.PointLight(0xff6600, 1, 0, 2));
+            scene.add(new THREE.PointLight(0xff3366, 0.8, 0, 2));
+            colorLight = new THREE.PointLight(0xff9900, 1, 0, 2);
+            colorLight.position.set(1, 2, 3); scene.add(colorLight);
+
+            const ground = new THREE.Mesh(
+                new THREE.CircleGeometry(6, 32),
+                new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.6, transparent: true, opacity: 0.5 })
+            );
+            ground.rotation.x = -Math.PI / 2; ground.position.y = -0.8;
+            scene.add(ground);
+
+            function createSunflower(x, z, scale = 1) {
+                const group = new THREE.Group();
+                const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 1.5, 8), new THREE.MeshStandardMaterial({ color: 0x4caf50 }));
+                stem.position.y = -0.5; group.add(stem);
+                const petalMat = new THREE.MeshStandardMaterial({ color: 0xffc107, emissive: 0x663300, emissiveIntensity: 0.3 });
+                for (let i = 0; i < 16; i++) {
+                    const angle = (i / 16) * Math.PI * 2;
+                    const petal = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 8), petalMat);
+                    petal.rotation.z = angle; petal.rotation.x = 0.6;
+                    petal.position.set(Math.cos(angle) * 0.6, 0.3, Math.sin(angle) * 0.6);
+                    group.add(petal);
+                }
+                const center = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 32), new THREE.MeshStandardMaterial({ color: 0x8b5a2b, emissive: 0x331100 }));
+                center.position.y = 0.3; group.add(center);
+                const seedMat = new THREE.MeshStandardMaterial({ color: 0x654321 });
+                for (let i = 0; i < 40; i++) {
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    const r = 0.35;
+                    const seed = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8), seedMat);
+                    seed.position.set(r * Math.sin(phi) * Math.cos(theta), 0.3 + r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
+                    group.add(seed);
+                }
+                group.position.set(x, 0, z); group.scale.set(scale, scale, scale);
+                return group;
+            }
+
+            [[-3, -2], [3, -2], [-3.5, 1.5], [3.5, 1.5], [-2.5, 3], [2.5, 3], [0, -3.5], [0, 3.5]].forEach(pos => {
+                const flower = createSunflower(pos[0], pos[1], 0.8);
+                sunflowers.push(flower); scene.add(flower);
+            });
+
+            spiderGroup = new THREE.Group();
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 32, 32), new THREE.MeshStandardMaterial({ color: 0xdc143c, emissive: 0x330000, emissiveIntensity: 0.3 }));
+            spiderGroup.add(head);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xaaccff, emissiveIntensity: 1.0 });
+            [-0.25, 0.25].forEach(x => {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), eyeMat);
+                eye.position.set(x, 0.15, 0.6); eye.scale.set(1, 0.7, 0.5); spiderGroup.add(eye);
+            });
+            const lensMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.8 });
+            [-0.25, 0.25].forEach(x => {
+                const lens = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), lensMat);
+                lens.position.set(x, 0.15, 0.72); lens.scale.set(1, 0.6, 0.3); spiderGroup.add(lens);
+            });
+            const spiderSymbol = new THREE.Group();
+            const bodySymbol = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), new THREE.MeshStandardMaterial({ color: 0x000000 }));
+            spiderSymbol.add(bodySymbol);
+            for (let i = 0; i < 8; i++) {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.25, 6), new THREE.MeshStandardMaterial({ color: 0x000000 }));
+                const angle = (i / 8) * Math.PI * 2;
+                leg.position.set(Math.cos(angle) * 0.18, 0, Math.sin(angle) * 0.18);
+                leg.rotation.z = angle + Math.PI / 2; leg.rotation.x = 0.8; spiderSymbol.add(leg);
+            }
+            spiderSymbol.position.set(0, -0.4, 0.65); spiderSymbol.scale.set(0.8, 0.8, 0.8);
+            spiderGroup.add(spiderSymbol);
+            spiderGroup.position.set(0, 2.5, 0); scene.add(spiderGroup);
+
+            webGroup = new THREE.Group();
+            const webMat = new THREE.LineBasicMaterial({ color: 0xff4444, transparent: true, opacity: 0.7 });
+            for (let radius = 0.5; radius <= 2.5; radius += 0.5) {
+                const points = [];
+                for (let i = 0; i <= 60; i++) {
+                    const angle = (i / 60) * Math.PI * 2;
+                    points.push(new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
+                }
+                webGroup.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points), webMat));
+            }
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2; const points = [];
+                for (let r = 0; r <= 2.5; r += 0.2) points.push(new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r));
+                webGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), webMat));
+            }
+            webGroup.position.set(0, 0.5, -2); webGroup.rotation.x = 0.2; scene.add(webGroup);
+
+            const particlesGeometry = new THREE.BufferGeometry();
+            const pc = 1500;
+            const pa = new Float32Array(pc * 3); const ca = new Float32Array(pc * 3);
+            for (let i = 0; i < pc * 3; i += 3) {
+                pa[i] = (Math.random() - 0.5) * 20; pa[i + 1] = Math.random() * 8; pa[i + 2] = (Math.random() - 0.5) * 20;
+                if (Math.random() > 0.5) { ca[i] = 1; ca[i + 1] = 0.8 + Math.random() * 0.2; ca[i + 2] = 0.2 + Math.random() * 0.2; }
+                else { ca[i] = 0.9 + Math.random() * 0.1; ca[i + 1] = 0.2 + Math.random() * 0.2; ca[i + 2] = 0.3 + Math.random() * 0.2; }
+            }
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(pa, 3));
+            particlesGeometry.setAttribute('color', new THREE.BufferAttribute(ca, 3));
+            particlesMesh = new THREE.Points(particlesGeometry, new THREE.PointsMaterial({ size: 0.08, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }));
+            scene.add(particlesMesh);
+
+            const sg = new THREE.BufferGeometry();
+            const sc = 800; const sp = new Float32Array(sc * 3);
+            for (let i = 0; i < sc * 3; i += 3) { sp[i] = (Math.random() - 0.5) * 30; sp[i + 1] = Math.random() * 15; sp[i + 2] = (Math.random() - 0.5) * 30; }
+            sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+            starsMesh = new THREE.Points(sg, new THREE.PointsMaterial({ size: 0.1, color: 0xffffff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending }));
+            scene.add(starsMesh);
+
+            let time = 0;
+            function animate() {
+                requestAnimationFrame(animate); time += 0.01; controls.update();
+                if (isCardOpen) {
+                    spiderGroup.position.y = 2.5 + Math.sin(time * 1.5) * 0.2;
+                    spiderGroup.rotation.y = Math.sin(time * 0.8) * 0.3;
+                    sunflowers.forEach((f, i) => { f.rotation.y = Math.sin(time * 0.5 + i * 0.5) * 0.3; f.position.y = Math.sin(time * 0.8 + i) * 0.05; });
+                    webGroup.rotation.z += 0.002;
+                    particlesMesh.rotation.y += 0.001;
+                    starsMesh.rotation.y += 0.0005;
+                }
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        document.getElementById('btnLsm')?.addEventListener('click', () => {
+            const span = document.getElementById('lsmText');
+            if (span) {
+                span.innerHTML = '🤟✨ <strong>"María de los Ángeles"</strong> en LSM:<br>Mano en pecho + movimiento circular del corazón 💖';
+                span.style.background = 'rgba(255,179,71,0.3)';
+                span.style.padding = '8px'; span.style.borderRadius = '20px';
+            }
+            if (colorLight) { colorLight.intensity = 1.8; setTimeout(() => colorLight.intensity = 1, 600); }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (window.innerWidth < 600 || !isCardOpen) return;
+            const tarjeta = document.querySelector('.tarjeta-maestra');
+            if (!tarjeta) return;
+            const r = tarjeta.getBoundingClientRect();
+            const x = (e.clientX - r.left) / r.width - 0.5;
+            const y = (e.clientY - r.top) / r.height - 0.5;
+            tarjeta.style.transform = `perspective(1000px) rotateX(${y * -4}deg) rotateY(${x * 4}deg)`;
+        });
+        document.querySelector('.tarjeta-maestra')?.addEventListener('mouseleave', () => {
+            document.querySelector('.tarjeta-maestra').style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+        });
+
+        console.log('✨📬🕷️ Carta Sorpresa 3D para María de los Ángeles 🌻✨');
+    </script>
+</body>
+</html>
